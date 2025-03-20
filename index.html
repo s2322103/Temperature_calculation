@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>体感温度計算</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" crossorigin=""></script>
+    <style>
+        #map { height: 600px; }
+    </style>
+</head>
+<body>
+    <h1>体感温度計算</h1>
+    <h3>県庁所在地を入力してください。</h3>
+    <form id="input-form">
+        <label for="location">地名:</label>
+        <input type="text" id="location" name="location" required>
+        <label for="temperature">気温 (°C):</label>
+        <input type="number" id="temperature" name="temperature" step="0.1" required>
+        <label for="humidity">湿度 (%):</label>
+        <input type="number" id="humidity" name="humidity" required>
+        <label for="wind_speed">風速 (m/s):</label>
+        <input type="number" id="wind_speed" name="wind_speed" step="0.1" required>
+        <button type="submit">計算</button>
+    </form>
+    <p id="result"></p>
+    <div id="map"></div>
+    <script>
+        var map = L.map('map').setView([35.6895, 139.6917], 10);
+        L.tileLayer('https://osm.gdl.jp/styles/osm-bright-ja/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+        }).addTo(map);
+
+        document.getElementById('input-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            var formData = new FormData(event.target);
+            fetch('calculate.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('result').textContent = '体感温度: ' + data.feels_like_temperature.toFixed(2) + '°C';
+                    L.marker([data.lat, data.lon]).addTo(map)
+                        .bindPopup('体感温度: ' + data.feels_like_temperature.toFixed(2) + '°C')
+                        .openPopup();
+                    map.setView([data.lat, data.lon], 10);
+                } else {
+                    document.getElementById('result').textContent = data.message;
+                    console.log(data.debug); // デバッグ情報を表示
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').textContent = 'Failed to calculate feels like temperature. Please try again.';
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
